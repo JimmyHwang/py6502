@@ -24,7 +24,7 @@ start:
   JMP  $FF59   ;WHEN WE'RE ALL DONE
 	       ;JUMP TO MONITOR START
 
-  ORG  $1000   ; A new location for a different code sequence
+  ORG  $F000   ; A new location for a different code sequence
   LDY  #$00    ;CLEAR Y-REGISTER
   LDA  $00,Y   ;XFER THE ZERO PAGE TO
   STA  $2000,Y ;2000-20FF SO WE CAN USE
@@ -54,6 +54,6 @@ loophere: LDA  ($00)   ;GET A BYTE FROM 100-UP
   jmp  start
   
   ORG  $fffa   ; System vectors
-  DW   $0100,$100,$0100
+  DW   $0100,&start,$0100
 
 
