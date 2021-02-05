@@ -8,8 +8,8 @@
 class dis6502:
     def __init__(self, object_code, symbols=None):
 
-        self.object_code = object_code
-        for i in xrange(len(self.object_code)):
+        self.object_code = object_code.copy()
+        for i in range(len(self.object_code)):
             if self.object_code[i] < 0:
                 self.object_code[i] = 0x00
 
@@ -298,8 +298,17 @@ class dis6502:
         self.hexcodes[0xEF] = ("", "")
         self.hexcodes[0xFF] = ("", "")
 
+    def disassemble(self, address, region_length):
+        lines = []
+        current_address = address
+        while current_address < address + region_length:
+            (line, length) = self.disassemble_line(current_address)
+            lines.append(line)
+            current_address += length
+        return lines
+            
     def disassemble_line(self, address):
-        # print "DISASSEMBLER ADDR: %04x" % address
+        # print "DISASSEMBLER ADDR: %04X" % address
         opcode_hex = self.object_code[address]
         operandl = self.object_code[(address + 1) % 65536]
         operandh = self.object_code[(address + 2) % 65536]
@@ -309,64 +318,63 @@ class dis6502:
 
         # print "OPCODE_HEX = %x" % opcode_hex
         opcode, addrmode = self.hexcodes[opcode_hex]
-        # print "DISASSEMBLER OPCD: %02x" % opcode_hex
+        # print "DISASSEMBLER OPCD: %02X" % opcode_hex
         # print "DISASSMBLER OPCD TXT:"+str(opcode)+" "+str(addrmode)
         if address in self.labels:
             label = (self.labels[address] + ":").ljust(10)
         else:
             label = " " * 10
 
-        addr_text = "%04x " % address
+        addr_text = "%04X " % address
 
         # Format the operand based on the addressmode
         length = 1
         if addrmode == "zeropageindexedindirectx":
-            operandtext = "($%02x,x)" % operand8
+            operandtext = "($%02X,X)" % operand8
             length = 2
         elif addrmode == "zeropageindexedindirecty":
-            operandtext = "($%02x),y" % operand8
+            operandtext = "($%02X),Y" % operand8
             length = 2
         elif addrmode == "zeropageindirect":
-            operandtext = "($%02x)" % operand8
+            operandtext = "($%02X)" % operand8
             length = 2
         elif addrmode == "zeropage":
-            operandtext = "$%02x" % operand8
+            operandtext = "$%02X" % operand8
             length = 2
         elif addrmode == "zeropagex":
-            operandtext = "$%02x,x" % operand8
+            operandtext = "$%02X,X" % operand8
             length = 2
         elif addrmode == "zeropagey":
-            operandtext = "$%02x,y" % operand8
+            operandtext = "$%02X,Y" % operand8
             length = 2
         elif addrmode == "immediate":
-            operandtext = "#$%02x" % operand8
+            operandtext = "#$%02X" % operand8
             length = 2
         elif addrmode == "absolutey":
-            operandtext = "$%04x,y" % operand16
+            operandtext = "$%04X,Y" % operand16
             length = 3
         elif addrmode == "absolute":
-            operandtext = "$%04x" % operand16
+            operandtext = "$%04X" % operand16
             length = 3
         elif addrmode == "absoluteindirect":
-            operandtext = "($%04x)" % operand16
+            operandtext = "($%04X)" % operand16
             length = 3
         elif addrmode == "absoluteindexedindirect":
-            operandtext = "($%04x,x)" % operand16
+            operandtext = "($%04X,X)" % operand16
             length = 3
         elif addrmode == "absolutex":
-            operandtext = "$%04x,x" % operand16
+            operandtext = "$%04X,X" % operand16
             length = 3
         elif addrmode == "indirect":
-            operandtext = "($%04x)" % operand16
+            operandtext = "($%04X)" % operand16
             length = 3
         elif addrmode == "relative":
             if operand8 < 128:
-                operandtext = "+$%02x" % operand8
+                operandtext = "$%04X (+$%02X)" % (address+operand8, operand8)
             else:
                 offset = (operand8 & 0x7f) - 128
-
                 offset = -offset
-                operandtext = "-$%02x" % offset
+                operandtext = "$%04X (-$%02X)" % (address+offset, offset)
             length = 2
         elif addrmode == "accumulator":
             operandtext = "A"
@@ -381,15 +389,15 @@ class dis6502:
             operandtext = ""
             length = 1
         else:
-            print "ERROR: Disassembler: Address mode %s not found" % addrmode
+            print("ERROR: Disassembler: Address mode %s not found" % addrmode)
             exit()
 
         if length == 1:
-            binary_text = "%02x       " % opcode_hex
+            binary_text = "%02X       " % opcode_hex
         elif length == 2:
-            binary_text = "%02x %02x    " % (opcode_hex, operandl)
+            binary_text = "%02X %02X    " % (opcode_hex, operandl)
         else:
-            binary_text = "%02x %02x %02x " % (opcode_hex, operandl, operandh)
+            binary_text = "%02X %02X %02X " % (opcode_hex, operandl, operandh)
 
         the_text = label + " " + addr_text + binary_text
         the_text += (opcode.ljust(5))
